@@ -1,2 +1,2 @@
-# country_matching
-Match the country game
+# countries and capitals matching game
+Thre are three levels
