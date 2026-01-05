@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>City Matching Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #cd3a80 ;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            color: #333;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 100%;
+            width: 100%;
+            margin: 0;
+            animation: fadeIn 1s ease-in;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        h1 {
+            color: #0288d1;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+            font-size: 1.8em;
+            margin: 10px 0;
+        }
+
+        #rules, #level-section {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #0288d1;
+            margin: 15px 0;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        #rules h2, #level-section h2 {
+            color: #0288d1;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #rules p {
+            margin: 8px 0;
+            font-size: 1em;
+            line-height: 1.5;
+            color: #333;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        #rules p::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #0288d1;
+            font-size: 1.2em;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        #rules, #level-section, #input-section, #game-section, #result-section {
+            margin: 15px 0;
+        }
+
+        #city-list, #country-list {
+            display: inline-block;
+            vertical-align: top;
+            width: 45%;
+            margin: 0 2%;
+        }
+
+        .city, .country {
+            background: #4caf50;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            cursor: move;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            font-size: 1.1em;
+            min-height: 40px;
+        }
+
+        .city.dragging, .country.dragging {
+            opacity: 0.7;
+            transform: scale(1.1);
+            border: 2px solid #0288d1;
+        }
+
+        .city {
+            background: #2196f3;
+            color: #fff;
+        }
+
+        .country {
+            background: #ff9800;
+            color: #fff;
+        }
+
+        .country.selected {
+            background: #ff5722;
+            border: 2px solid #fff;
+        }
+
+        .dropped {
+            background: #9e9e9e;
+            color: #fff;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(45deg, #e91e63, #9c27b0);
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1em;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3), 0 0 10px rgba(233, 30, 99, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        button {
+            background: #0288d1;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #fff;
+            transition: background 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            width: 100%;
+            max-width: 250px;
+            margin: 10px auto;
+            min-height: 44px;
+        }
+
+        button:hover {
+            background: #0277bd;
+        }
+
+        #result-section table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        #result-section th, #result-section td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 1em;
+        }
+
+        #result-section th {
+            background: #0288d1;
+            color: #fff;
+        }
+
+        #result-section .correct {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        #result-section .incorrect {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        #loading, #error {
+            display: none;
+            font-size: 1.1em;
+            color: #0288d1;
+        }
+
+        #error {
+            color: #f44336;
+            font-weight: 600;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 0;
+                margin: 0;
+            }
+
+            .container {
+                padding: 2px;
+                margin: 0;
+            }
+
+            h1 {
+                font-size: 1.2em;
+                margin: 5px 0;
+            }
+
+            h2 {
+                font-size: 1em;
+                margin: 5px 0;
+            }
+
+            #rules, #level-section {
+                padding: 6px;
+                margin: 6px 0;
+            }
+
+            #rules h2, #level-section h2 {
+                font-size: 1em;
+            }
+
+            #rules p {
+                font-size: 0.85em;
+                line-height: 1.2;
+                padding-left: 10px;
+            }
+
+            #city-list, #country-list {
+                display: inline-block;
+                vertical-align: top;
+                width: 48%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .city, .country {
+                padding: 4px;
+                margin: 2px 0;
+                font-size: 0.75em;
+                min-height: 24px;
+                border-radius: 3px;
+                touch-action: none;
+            }
+
+            #timer {
+                top: 2px;
+                left: 2px;
+                padding: 4px 8px;
+                font-size: 0.8em;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 6px rgba(233, 30, 99, 0.3);
+            }
+
+            #result-section th, #result-section td {
+                padding: 4px;
+                font-size: 0.8em;
+            }
+
+            button {
+                padding: 6px 12px;
+                font-size: 0.8em;
+                max-width: 150px;
+                min-height: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <audio id="background-music" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mp3">
+    </audio>
+
+    <div class="container" id="loading">
+        <p>Loading data...</p>
+    </div>
+
+    <div class="container" id="error">
+        <p>Failed to load data from Excel. Check console for details. Using default data.</p>
+        <button onclick="showLevel()">Continue</button>
+    </div>
+
+    <div class="container" id="rules" style="display: none;">
+        <h1>Countries Capitals Matching Game</h1>
+        <h2>Rules</h2>
+        <p>Match Capital cities to their correct countries.</p>
+        <p>Choose a level: Easy (10 pairs, 40s), Medium (10 pairs, 60s), or Hard (10 pairs, 90s).</p>
+        <p>Drag countries to cities (desktop) or tap a country then a city (mobile) to match.</p>
+        <p>Each correct match earns 10 points.</p>
+        <p>After the game, correct matches are green, incorrect are red, with your total score.</p>
+        <button onclick="showLevel()">Select Level</button>
+    </div>
+
+    <div class="container" id="level-section" style="display: none;">
+        <h1>Select Level</h1>
+        <button onclick="selectLevel('easy')">Easy</button>
+        <button onclick="selectLevel('medium')">Medium</button>
+        <button onclick="selectLevel('hard')">Hard</button>
+    </div>
+
+    <div class="container" id="input-section" style="display: none;">
+        <h1>Enter Your Name</h1>
+        <input type="text" id="player-name" placeholder="Your Name">
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div class="container" id="game-section" style="display: none;">
+        <h1 id="game-title"></h1>
+        <div id="timer">Time: 40s</div>
+        <div id="city-list"></div>
+        <div id="country-list"></div>
+    </div>
+
+    <div class="container" id="result-section" style="display: none;">
+        <h1>Results</h1>
+        <table id="results">
+            <thead>
+                <tr>
+                    <th>City</th>
+                    <th>Your Match</th>
+                    <th>Correct Country</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <h2 id="score"></h2>
+        <button onclick="playAgain()">Play Again</button>
+    </div>
+
+    <script>
+        let cityData = { easy: [], medium: [], hard: [] };
+        const defaultCityData = {
+            easy: [
+                { city: "Paris", country: "France" },
+                { city: "Tokyo", country: "Japan" },
+                { city: "New York", country: "USA" },
+                { city: "Los Angeles", country: "USA" },
+                { city: "London", country: "UK" },
+                { city: "Sydney", country: "Australia" },
+                { city: "Rome", country: "Italy" },
+                { city: "Moscow", country: "Russia" },
+                { city: "Beijing", country: "China" },
+                { city: "Cairo", country: "Egypt" }
+            ],
+            medium: [
+                { city: "Cape Town", country: "South Africa" },
+                { city: "Bangkok", country: "Thailand" },
+                { city: "Istanbul", country: "Turkey" },
+                { city: "Rio de Janeiro", country: "Brazil" },
+                { city: "Sao Paulo", country: "Brazil" },
+                { city: "Seoul", country: "South Korea" },
+                { city: "Dubai", country: "UAE" },
+                { city: "Vancouver", country: "Canada" },
+                { city: "Lisbon", country: "Portugal" },
+                { city: "Hanoi", country: "Vietnam" }
+            ],
+            hard: [
+                { city: "Ulaanbaatar", country: "Mongolia" },
+                { city: "Addis Ababa", country: "Ethiopia" },
+                { city: "Tbilisi", country: "Georgia" },
+                { city: "La Paz", country: "Bolivia" },
+                { city: "Sucre", country: "Bolivia" },
+                { city: "Astana", country: "Kazakhstan" },
+                { city: "Reykjavik", country: "Iceland" },
+                { city: "Lusaka", country: "Zambia" },
+                { city: "Phnom Penh", country: "Cambodia" },
+                { city: "Muscat", country: "Oman" }
+            ]
+        };
+        let playerName = '';
+        let selectedCities = [];
+        let matches = {};
+        let score = 0;
+        let timeLeft = 40;
+        let timer;
+        let selectedCountry = null;
+        let touchElement = null;
+        let cloneElement = null;
+        let currentLevel = '';
+
+        // Log device info
+        console.log(`Device Pixel Ratio: ${window.devicePixelRatio}`);
+        console.log(`Viewport: ${window.innerWidth}x${window.innerHeight}`);
+        console.log(`Media Query: max-width 800px applies: ${window.innerWidth <= 800}`);
+
+        // Fisher-Yates shuffle
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Load XLSX files
+        async function loadCities() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('rules').style.display = 'none';
+
+                const levels = ['easy', 'medium', 'hard'];
+                for (const level of levels) {
+                    try {
+                        const response = await fetch(`${level}.xlsx`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+                        }
+                        const arrayBuffer = await response.arrayBuffer();
+                        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                        
+                        let jsonData = [];
+                        for (const sheetName of workbook.SheetNames) {
+                            const sheet = workbook.Sheets[sheetName];
+                            const data = XLSX.utils.sheet_to_json(sheet, { defval: null });
+                            if (data.length > 0) {
+                                jsonData = data;
+                                console.log(`Using sheet: ${sheetName} for ${level}`);
+                                break;
+                            }
+                        }
+
+                        if (jsonData.length === 0) {
+                            throw new Error(`No valid data in ${level}.xlsx`);
+                        }
+
+                        cityData[level] = jsonData
+                            .map(row => ({
+                                city: row.city ? String(row.city).trim() : null,
+                                country: row.country ? String(row.country).trim() : null
+                            }))
+                            .filter(row => row.city && row.country && /^[A-Za-z\s]+$/.test(row.city) && /^[A-Za-z\s]+$/.test(row.country));
+
+                        console.log(`Parsed ${level} data: ${cityData[level].length} valid pairs`);
+
+                        if (cityData[level].length < 10) {
+                            console.warn(`Insufficient valid pairs in ${level}: found ${cityData[level].length}, need at least 10. Using default data.`);
+                            cityData[level] = defaultCityData[level];
+                        }
+                    } catch (error) {
+                        console.error(`Error loading ${level}.xlsx:`, error.message);
+                        console.log(`Falling back to default data for ${level}`);
+                        cityData[level] = defaultCityData[level];
+                    }
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('rules').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading XLSX files:', error.message);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                cityData = defaultCityData;
+            }
+        }
+
+        function showLevel() {
+            document.getElementById('rules').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('level-section').style.display = 'block';
+            document.getElementById('background-music').play();
+        }
+
+        function selectLevel(level) {
+            currentLevel = level;
+            document.getElementById('level-section').style.display = 'none';
+            document.getElementById('input-section').style.display = 'block';
+        }
+
+        function startGame() {
+            playerName = document.getElementById('player-name').value || 'Player';
+            document.getElementById('input-section').style.display = 'none';
+            document.getElementById('game-section').style.display = 'block';
+            document.getElementById('game-title').textContent = `${playerName}'s Game - ${currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}`;
+            loadGame();
+        }
+
+        function loadGame() {
+            const pairCount = 10;
+            timeLeft = currentLevel === 'easy' ? 40 : currentLevel === 'medium' ? 60 : 90;
+            document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+
+            // Shuffle and select 10 pairs, ensuring unique cities
+            let shuffledData = shuffle([...cityData[currentLevel]]);
+            selectedCities = [];
+            let citySet = new Set();
+            for (let pair of shuffledData) {
+                if (!citySet.has(pair.city) && selectedCities.length < pairCount) {
+                    selectedCities.push(pair);
+                    citySet.add(pair.city);
+                }
+            }
+            if (selectedCities.length < pairCount) {
+                console.warn(`Not enough unique cities in ${currentLevel} data. Using default data.`);
+                selectedCities = shuffle([...defaultCityData[currentLevel]]).slice(0, pairCount);
+            }
+            console.log(`Selected pairs for ${currentLevel}:`, selectedCities);
+
+            // Create country list, including duplicates for matching
+            const countries = selectedCities.map(c => c.country);
+            const shuffledCountries = shuffle([...countries]);
+            console.log(`Shuffled countries:`, shuffledCountries);
+
+            const cityList = document.getElementById('city-list');
+            const countryList = document.getElementById('country-list');
+
+            cityList.innerHTML = '<h2>Cities</h2>';
+            countryList.innerHTML = '<h2>Countries</h2>';
+
+            selectedCities.forEach(city => {
+                const div = document.createElement('div');
+                div.className = 'city';
+                div.textContent = city.city;
+                div.setAttribute('data-city', city.city);
+                div.addEventListener('dragover', e => e.preventDefault());
+                div.addEventListener('drop', e => drop(e, city.city));
+                div.addEventListener('touchstart', e => handleTouchStart(e, city.city), { passive: false });
+                cityList.appendChild(div);
+            });
+
+            shuffledCountries.forEach((country, index) => {
+                const div = document.createElement('div');
+                div.className = 'country';
+                div.textContent = country;
+                div.setAttribute('data-country', country);
+                div.setAttribute('data-index', index); // Unique identifier
+                div.setAttribute('draggable', true);
+                div.addEventListener('dragstart', e => drag(e, country, index));
+                div.addEventListener('touchstart', e => handleTouchStart(e, country, index), { passive: false });
+                div.addEventListener('touchmove', handleTouchMove, { passive: false });
+                div.addEventListener('touchend', handleTouchEnd, { passive: false });
+                div.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+                countryList.appendChild(div);
+            });
+
+            // Log computed widths
+            setTimeout(() => {
+                const cityListWidth = cityList.offsetWidth;
+                const countryListWidth = countryList.offsetWidth;
+                console.log(`City List Width: ${cityListWidth}px`);
+                console.log(`Country List Width: ${countryListWidth}px`);
+                console.log(`Total Width: ${cityListWidth + countryListWidth}px`);
+            }, 100);
+
+            startTimer();
+        }
+
+        function drag(e, country, index) {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ country, index }));
+            e.target.id = `country-${index}`;
+            e.target.classList.add('dragging');
+            console.log(`Drag started for country: ${country}, index: ${index}`);
+        }
+
+        function handleTouchStart(e, data, index) {
+            e.preventDefault();
+            console.log(`Touch start: ${data}, Type: ${e.target.classList.contains('country') ? 'country' : 'city'}`);
+
+            if (e.target.classList.contains('country')) {
+                if (!selectedCountry) {
+                    // Tap mode: Select country
+                    selectedCountry = e.target;
+                    selectedCountry.classList.add('selected');
+                    console.log(`Selected country: ${selectedCountry.textContent}, index: ${index}`);
+                } else if (selectedCountry === e.target) {
+                    // Deselect if tapping same country
+                    selectedCountry.classList.remove('selected');
+                    selectedCountry = null;
+                    console.log('Deselected country');
+                }
+                // Drag mode: Initialize drag
+                touchElement = e.target;
+                touchElement.classList.add('dragging');
+                const rect = touchElement.getBoundingClientRect();
+                cloneElement = touchElement.cloneNode(true);
+                cloneElement.style.position = 'fixed';
+                cloneElement.style.zIndex = '1000';
+                cloneElement.style.opacity = '0.7';
+                cloneElement.style.pointerEvents = 'none';
+                cloneElement.style.left = `${rect.left}px`;
+                cloneElement.style.top = `${rect.top}px`;
+                cloneElement.style.width = `${rect.width}px`;
+                document.body.appendChild(cloneElement);
+                console.log(`Drag initiated: ${data}, index: ${index}, Pos: (${rect.left}, ${rect.top})`);
+            } else if (e.target.classList.contains('city') && selectedCountry) {
+                // Tap mode: Match country to city
+                const city = e.target.getAttribute('data-city');
+                const country = selectedCountry.getAttribute('data-country');
+                e.target.textContent = `${city} - ${country}`;
+                e.target.classList.add('dropped');
+                matches[city] = country;
+                console.log(`Tap match: ${city} -> ${country}`);
+                selectedCountry.remove();
+                selectedCountry.classList.remove('selected');
+                selectedCountry = null;
+                console.log(`Current matches:`, matches);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (touchElement && cloneElement) {
+                const touch = e.touches[0];
+                cloneElement.style.left = `${touch.clientX - cloneElement.offsetWidth / 2}px`;
+                cloneElement.style.top = `${touch.clientY - cloneElement.offsetHeight / 2}px`;
+                console.log(`Touch move: (${touch.clientX}, ${touch.clientY})`);
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (touchElement && cloneElement) {
+                const touch = e.changedTouches[0];
+                cloneElement.remove();
+                cloneElement = null;
+
+                touchElement.style.visibility = 'hidden';
+                const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                touchElement.style.visibility = '';
+
+                const cityDiv = targetElement ? targetElement.closest('.city') : null;
+                if (cityDiv && touchElement.classList.contains('country')) {
+                    const country = touchElement.getAttribute('data-country');
+                    const city = cityDiv.getAttribute('data-city');
+                    cityDiv.textContent = `${city} - ${country}`;
+                    cityDiv.classList.add('dropped');
+                    matches[city] = country;
+                    console.log(`Drag match: ${city} -> ${country}`);
+                    touchElement.remove();
+                    console.log(`Current matches:`, matches);
+                } else {
+                    console.log(`Invalid drop target at (${touch.clientX}, ${touch.clientY})`);
+                }
+
+                touchElement.classList.remove('dragging');
+                touchElement = null;
+            }
+        }
+
+        function handleTouchCancel(e) {
+            e.preventDefault();
+            if (touchElement && cloneElement) {
+                cloneElement.remove();
+                cloneElement = null;
+                touchElement.classList.remove('dragging');
+                touchElement = null;
+                console.log('Touch cancelled');
+            }
+        }
+
+        function drop(e, city) {
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            const country = data.country;
+            const index = data.index;
+            const cityDiv = e.target;
+            cityDiv.textContent = `${city} - ${country}`;
+            cityDiv.classList.add('dropped');
+            matches[city] = country;
+            console.log(`Desktop drop: ${city} -> ${country}, index: ${index}`);
+            const countryDiv = document.getElementById(`country-${index}`);
+            if (countryDiv) {
+                countryDiv.remove();
+            } else {
+                console.error(`Failed to find country div for index ${index}`);
+            }
+            console.log(`Current matches:`, matches);
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            document.getElementById('game-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'block';
+            const resultsBody = document.getElementById('results').querySelector('tbody');
+            resultsBody.innerHTML = '';
+            score = 0;
+
+            selectedCities.forEach(cityObj => {
+                const userCountry = matches[cityObj.city] || 'No match';
+                const isCorrect = userCountry === cityObj.country;
+                if (isCorrect) score += 10;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${cityObj.city}</td>
+                    <td>${userCountry}</td>
+                    <td>${cityObj.country}</td>
+                    <td class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'Correct' : 'Incorrect'}</td>
+                `;
+                resultsBody.appendChild(row);
+                console.log(`Result: ${cityObj.city} matched ${userCountry}, correct: ${cityObj.country}, status: ${isCorrect ? 'Correct' : 'Incorrect'}`);
+            });
+
+            document.getElementById('score').textContent = `Total Score: ${score}`;
+            console.log(`Final matches:`, matches);
+            console.log(`Final score: ${score}`);
+        }
+
+        function playAgain() {
+            document.getElementById('result-section').style.display = 'none';
+            document.getElementById('level-section').style.display = 'block';
+            matches = {};
+            score = 0;
+            timeLeft = 40;
+            clearInterval(timer);
+            document.getElementById('timer').textContent = 'Time: 40s';
+            selectedCountry = null;
+            touchElement = null;
+            cloneElement = null;
+            currentLevel = '';
+        }
+
+        // Load cities on page load
+        window.onload = loadCities;
+    </script>
+</body>
+</html>
